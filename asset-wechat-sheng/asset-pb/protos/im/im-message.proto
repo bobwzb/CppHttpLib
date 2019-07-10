@@ -1,0 +1,245 @@
+syntax = "proto3";
+package pb.im;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "consts/cenarius.proto";
+option go_package = "gitlab.com/vectorup/asset-pb/go/im";
+
+
+message IMMessage {
+    // 消息体的类型
+    IMMessageType.Enum type = 1;
+    // NOTE(QuantumGhost): 这里留几个 slot 来后面加 header 之类的东西
+    // 消息具体的 Payload，这里直接用 Any 类型，具体的内容跟 type 对应
+    google.protobuf.Any content = 6;
+}
+
+// 这里定义通过 im 发送的自定义消息的类型
+// NOTE(QuantumGhost): 每个 Enum 类型都应该有对应的消息，对应的消息应该叫 `$TYPE$Msg`
+message IMMessageType {
+    enum Enum {
+        UNKNOWN = 0;
+        // 点赞
+        THUMB_UP = 1;
+        // 评论
+        COMMENT = 2;
+        // 加好友请求
+        FRIEND_REQUEST = 3;
+        // 加好友回应
+        // NOTE(QuantumGhost): 这个现在前端自己发的，后端暂时不需要发送这个事件
+        FRIEND_REQUEST_RESPONSE = 4;
+        // 发财富圈
+        MOMENT_POST = 5;
+
+        // NOTE(QuantumGhost): 这个是用来显示交易通知，活动通知和文章通知之类的内容的
+        // 并不是直接由 AssetClub 团队发出的通知
+        // 具体内容再做对应业务的的时候再去考虑吧
+        // SYSTEM_NOTIFICATION = 6;
+
+        // 公告，包括新版本通知
+        ANNOUNCEMENT = 7;
+        // 游戏邀请
+        GAME_INVITATION = 8;
+        // 好友关系发生变化
+        FRIEND_RELATIONSHIP_CHANGE = 9;
+        // 群邀请
+        GROUP_INVITATION = 10;
+        // 加群申请
+        GROUP_JOIN_APPLY = 11;
+        // 加群申请结果
+        GROUP_JOIN_RESULT = 12;
+        // 交易通知消息
+        TRANSACTION_NOTIFICATION = 13;
+        LINK_MESSAGE = 14;
+        // 群消息点赞数量变化消息
+        GROUP_MESSAGE_THUMB_UP = 15;
+    }
+}
+
+// 通用的用户信息字段
+message UserInfo {
+    int64 userId = 1;
+    string nickname = 2;
+    string avatar = 3;
+}
+
+// 点赞 / 评论的 target 的摘要
+// 如果有 imageUrls 优先显示图片，否则显示 text
+message TargetSummary {
+    consts.ObjectType.Enum objectType = 1;
+    string objectId = 2;
+    // 要显示的文字
+    string text = 3;
+    // 要显示的图片
+    repeated string imageUrls = 4;
+}
+
+// THUMB_UP = 1;
+message ThumpUpMsg {
+    UserInfo sender = 1;
+    google.protobuf.Timestamp createdAt = 2;
+    consts.ObjectType.Enum objectType = 3;
+    string objectId = 4;
+    TargetSummary summary = 5;
+}
+
+// COMMENT = 2;
+message CommentMsg {
+    UserInfo sender = 1;
+    google.protobuf.Timestamp createdAt = 2;
+    string content = 3;
+    consts.ObjectType.Enum objectType = 4;
+    string objectId = 5;
+    TargetSummary summary = 6;
+    // 评论支付的费用,  "" 或 0 表示不用付费
+    string fee = 7;
+    // 如果是回复评论, 这里表示被回复的评论 ID
+    string replyTo = 8;
+}
+
+// FRIEND_REQUEST = 3;
+message FriendRequestMsg {
+    // 发送者信息
+    UserInfo sender = 1;
+    // 好友申请文本
+    string reason = 2;
+}
+
+// FRIEND_REQUEST_RESPONSE = 4;
+message FriendRequestResponseMsg {
+    UserInfo sender = 1;
+    // NOTE(QuantumGhost): 目前业务上没有拒绝逻辑，因此如果收到消息就一定是通过了
+    bool accepted = 2;
+}
+
+// MOMENT_POST = 5;
+// TODO(QuantumGhost): 这里要看设计稿上的通知样式来决定具体要推什么内容
+message MomentPostMsg {
+    UserInfo sender = 1;
+}
+
+// ANNOUNCEMENT = 7;
+message AnnouncementMsg {
+    string content = 1;
+}
+
+// GAME_INVITATION = 8;
+message GameInvitationMsg {
+    UserInfo sender = 1;
+    string roomId = 2;
+    int32 assetScore = 3;
+    string assetLevel = 4;
+}
+
+// 好友关系发生变化
+// FRIEND_RELATIONSHIP_CHANGE = 9;
+message FriendRelationshipChangeMsg {
+    enum ChangeType {
+        UNKNOWN = 0;
+        ADD = 1;
+        DELETE = 2;
+    }
+    ChangeType type = 1;
+    // 变化的好友的 user_id
+    // 如果是添加了好友，那么这个 id 就是新好友的 id
+    // 如果是删除了好友，那么这个 id 就是被删除的好友的 id
+    // 举个栗子：如果 A 通过了 B 的好友申请，那么发给 A 的 FriendRelationshipChangeMsg 里面的
+    // userId 就是 B 的 id，同时，发给 B 的 FriendRelationshipChangeMsg 里面的 userId 是 A 的 id
+    // 删除的情况类似，双方都会收到包含对方 userId 的 msg
+    int64 userId = 2;
+}
+
+// 群邀请
+// GROUP_INVITATION = 10;
+message GroupInvitationMsg {
+    // 群名称
+    string name = 1;
+    // 群成员数量
+    int32 memberNum = 2;
+    // 群阶层字符（A7.9）
+    string ranking = 3;
+    // 群 id
+    string groupId = 4;
+    // 群头像地址
+    string groupAvatarUrl = 5;
+}
+
+message GroupJoinApplyMsg {
+    // 申请人信息
+    UserInfo applier = 1;
+    // 群信息
+    GroupInfo groupInfo = 2;
+    // 邀请者昵称
+    string invitorNickName = 3;
+    // 是否进行了支付
+    bool hasPaid = 4;
+    // 支付的 acc 金额
+    string accAmountString = 5;
+    // 群申请 id，给群主获取申请状态用
+    string applicationId = 6;
+}
+
+message GroupInfo {
+    // 群 id
+    string groupId = 1;
+    // 群名称
+    string name = 2;
+    // 群头像
+    string faceUrl = 3;
+}
+
+message GroupJoinResultMsg {
+    // 群组概要
+    GroupInfo groupInfo = 1;
+    // 申请是否被接受
+    bool accepted = 2;
+    // 是否进行了支付
+    bool hasPaid = 3;
+    // 支付的 acc 金额
+    string accAmountString = 4;
+}
+
+// 交易通知类型
+message TransactionNotificationType {
+    enum Enum {
+        UNKNOWN = 0;
+        // 收款
+        RECEIVE = 1;
+        // 支付
+        PAY = 2;
+        // 退款
+        REFUND = 3;
+    }
+}
+
+// 交易通知消息
+message TransactionNotificationMsg {
+    // 收款人信息
+    UserInfo user = 1;
+    // 交易备注
+    string comment = 2;
+    // 交易金额
+    string amount = 3;
+    // 交易的 id
+    string tradeId = 4;
+    // 交易通知类型
+    TransactionNotificationType.Enum type = 5;
+}
+
+message LinkMsg {
+    string title = 1;
+    string desc = 2;
+    string url = 3;
+    string faviconUrl = 4;
+}
+
+
+// 群消息点赞数量变化消息
+message GroupMessageThumbUpMsg {
+    string groupID = 1;
+    // cenarius 服务端生成的消息 ID
+    string msgID = 2;
+    // 直接推送群消息当前点赞数量
+    int32 count = 3;
+}

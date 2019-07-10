@@ -1,0 +1,323 @@
+syntax = "proto3";
+
+package pb.cenarius;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "common/consts.proto";
+import "common/types.proto";
+import "common/message.proto";
+
+option go_package = "gitlab.com/vectorup/asset-pb/go/cenarius";
+
+
+// NOTE(QuantumGhost): 响应的 PlayerInfo 顺序与请求的 UserIds 顺序一样
+message GetPlayerInfoReq {
+    repeated int64 userIds = 1;
+}
+
+message GetPlayerInfoRsp {
+    repeated common.PlayerInfo players = 1;
+}
+
+message UpdateUserCoinReq {
+    int64 UserID = 1;    // required
+    // +100 增加, -100 减少
+    int64 Coin = 2;
+    // 更新请求的备注信息, 不能为空, eg. 游戏奖励:1000
+    string Comment = 3;
+}
+
+message UpdateUserCoinResp {
+    int64 UserID = 1;
+    // 更新后的金币值
+    int64 Coin = 2;
+}
+
+message BatchUpdateCoinReq {
+    repeated UpdateUserCoinReq Rows = 1;
+}
+
+message BatchUpdateCoinResp {
+    repeated int64 SuccessUsers = 1;
+    repeated int64 FaliedUsers = 2;
+    map<int64, UpdateUserCoinResp> results = 3;
+}
+
+message AuthenticationReq {
+    string token = 1;
+}
+
+message ListBotsReq {
+    common.PaginationReq pagination = 1;
+}
+
+message BotInfo {
+    string token = 1;
+    int64 hideId = 2;
+}
+
+message ListBotsRsp {
+    repeated BotInfo bots = 1;
+    common.PaginationRsp pagination = 2;
+}
+
+message Role {
+    int64 ID = 1;
+    string name = 2;
+    // 行业
+    string  industry = 3;
+    // 月工资
+    int64 salary = 4;
+    // 月固定开支
+    int64 expense = 5;
+    // 房屋贷款
+    int64 houseLoan = 6;
+    // 汽车贷款
+    int64 carLoan = 7;
+    // 信用卡
+    int64 creditCard  = 8;
+    // 借款
+    int64 borrowMoney = 9;
+    // 银行贷款
+    int64 bankLoan = 10;
+
+    // NOTE(QuantumGhost): 下面这些百分比是原来准备用来动态计算对应开支的，
+    // 不过因为浮点数舍入误差，计算出来的值和产品的设计值会有很小的区别
+    // 因此这些字段被废弃掉了，产品给出的数值表格中直接包含计算好的数值，
+    // 避免代码中计算导致的舍入误差。
+    // 税率百分比
+    float taxTatePCT = 11 [deprecated=true];
+    //房贷利率百分比
+    float houseRatePCT = 12 [deprecated=true];
+    //车贷利率百分比
+    float carRatePCT = 13 [deprecated=true];
+    //信用卡利率百分比
+    float creditCardRatePCT = 14 [deprecated=true];
+    //借贷利率百分比
+    float borrowMoneyRatePCT = 15 [deprecated=true];
+    //银行贷款利率百分比
+    float bankLoanRatePCT = 16 [deprecated=true];
+    // 收支百分比
+    float taxAndSpendPCT = 17 [deprecated=true];
+    // 孩子百分比
+    float babySpendPCT = 18 [deprecated=true];
+    // NOTE(QuantumGhost): 升值加薪的百分比，这个字段还是需要的
+    // 财务报表玩游戏的时候这里固定 20%
+    float wageHikePCT = 19;
+
+    // 职业唯一标志，财务报表玩游戏时这里是 ROLE:USER_DEFINED
+    string flag = 20;
+    // 是否可用
+    bool available = 21;
+    // 是否可以免费使用
+    bool free = 22;
+
+    // 职业头像
+    // 财务报表玩游戏功能里面，这里传的是用户的头像
+    string avatar = 23;
+
+    // 职业晋升机会, eg: [教师, 年级主任, 副校长, 校长]
+    // 财务报表玩游戏功能里面，这里是空
+    repeated string promotions = 24;
+
+    // NOTE(QuantumGhost): 补充的各种支出字段，对应上面的 各种 PCT
+    // 加 `_` 前缀是为了避免跟已经存在的方法名产生冲突
+    int64 _insuranceAndHousingFund = 25;
+    int64 _houseExpense = 26;
+    int64 _carExpense = 27;
+    int64 _creditCardExpense = 28;
+    int64 _borrowMoneyExpense = 29;
+    // NOTE(QuantumGhost): 财务报表玩游戏时，_babyExpense 要 cenarius 计算好了返回给 Game
+    // 计算规则如下：
+    // 1. 如果用户加入了类型为孩子的支出项，使用该支出项的值；（NOTE(QuantumGhost): 目前 （2018-11-20）没有这个支出类型）
+    // 2. 如果用户的工资总和 > 0，孩子支出为总和的 20%
+    // 3. 如果用户的工资总和 < 0，孩子支出为总和的 20% 1000
+    // 工资总和定义为用户财务报表里所有类型的所有收入减去同类型的所有支出的值
+    int64 _babyExpense = 30;
+    int64 _bankLoanExpense = 31;
+
+    repeated RoleAsset assets = 32;
+}
+
+// 获取所有可用的职业
+message PullRolesRsp {
+    repeated Role roles = 1;
+}
+
+// 用户可以使用的职业
+message UserAvailableRole {
+    Role role = 1;
+    // 已购买
+    bool purchased = 2;
+    // 免费使用
+    bool free = 3;
+}
+
+// 获取用户可用职业列表 req
+message FetchUserRolesReq {
+    int64 userID = 1;
+}
+
+// 获取用户可以职业列表 resp
+message FetchUserRolesRsp {
+    repeated UserAvailableRole roles = 1;
+}
+
+// 批量获取用户可用职业列表
+message BatchFetchUserRolesReq {
+    repeated int64 users = 1;
+}
+message BatchFetchUserRolesRsp {
+    map<int64, FetchUserRolesRsp> records = 1;
+}
+
+message PlayerStatus {
+    message Role {
+        int64 id = 1;
+        string name = 2;
+        string flag = 3;
+    }
+    int64 userId = 1;
+    int64 playerId = 2;
+
+    // 游戏基本信息
+    bool isWinner = 3;
+    // 财富自由度，这里存的是百分数，80% 就是 80
+    float freedomDegree = 4;
+
+    // 游戏记录数据
+    Role role = 5;
+    int64 monthlyInvestmentIncome = 6;
+    int64 monthlyExpense = 7;
+    int64 monthlyCashflow = 8;
+    // 结束游戏时使用 JSON 序列化过的财务报表数据，
+    // dump 一份放到 cenarius，这样游戏外的展示就不用再去请求 game 了
+    bytes financialReport = 9;
+    common.AssetStatement assetStatment = 10;
+    // 玩家是否破产, 破产的玩家没有游戏奖励
+    bool isOut = 11;
+}
+
+message EndGameRequest {
+    int64 gameId = 1;
+    repeated PlayerStatus status = 2;
+    google.protobuf.Timestamp startedAt = 3;
+    google.protobuf.Timestamp endedAt = 4;
+    // 匹配模式, 如果是排位赛, 会计算排位奖励
+    common.MatchType matchType = 5;
+    common.GameOverMsg.endType endType = 6;
+}
+
+message EndGameResponse {
+    int64 gameID = 1;
+    map<int64, common.GameBonus> bonus = 2;
+}
+
+message SendTextMessageReq {
+    repeated string receiver = 1;
+    string text = 2;
+}
+
+service CenariusService {
+    rpc Authenticate(AuthenticationReq) returns (common.PlayerInfo);
+    rpc GetPlayerInfo (GetPlayerInfoReq) returns (GetPlayerInfoRsp);
+
+    // 获取所有可以使用的职业列表, 游戏开始前或者游戏服务器启动时加载
+    rpc PullRoles(google.protobuf.Empty) returns (PullRolesRsp);
+    // 获取用户可以使用的职业列表(已经购买或者免费)
+    rpc FetchUserRoles (FetchUserRolesReq) returns (FetchUserRolesRsp);
+    // 同时获取多个用户的可用职业列表
+    rpc BatchFetchUserRoles (BatchFetchUserRolesReq) returns (BatchFetchUserRolesRsp);
+
+//    rpc UpdateUserCoin (UpdateUserCoinReq) returns (UpdateUserCoinResp){
+//        option deprecated = true;
+//    };
+//    rpc BatchUpdateUserCoin (BatchUpdateCoinReq) returns (BatchUpdateCoinResp){
+//        option deprecated = true;
+//    };
+    // 注意，这个接口目前是按 id 升序返回的
+    rpc ListBots(ListBotsReq) returns (ListBotsRsp);
+    rpc EndGame(EndGameRequest) returns (EndGameResponse);
+
+    rpc SendTextMessage(SendTextMessageReq) returns (google.protobuf.Empty);
+    rpc GetUserDefinedRole(GetUserDefinedRoleReq) returns (Role);
+    // NOTE(QuantumGhost): 这个只是临时解决方案，上了云信 IM 之后可以客户端自己发送，就不需要服务器参与了
+    rpc SendGameInvitation(SendGameInvitationReq) returns (google.protobuf.Empty);
+
+    // 财务训练, 应该在游戏开始的时候再去消费,
+    // 或者在游戏结束的时候 canaries 自动消费, 这样就不再需要这个接口了
+    rpc ConsumeTrainingGame(ConsumeTrainingReq) returns (google.protobuf.Empty);
+    // 获取财务训练余额, 创建训练模式的房间或者开始训练模式匹配的时候都可以去调用
+    rpc CheckTrainingGameBalance(TrainingGameBalanceReq) returns (TrainingGameBalanceRsp);
+}
+
+message SendGameInvitationReq {
+    // 邀请者用户 id
+    int64 invitorId = 1;
+    // 被邀请者用户 id
+    int64 inviteeId = 2;
+    string roomId = 3;
+    // 如果发送到群组需要提供 group id
+    string groupId = 4;
+}
+
+message RoleAssetType {
+    enum Enum {
+        UNKNOWN = 0;
+        SALARY = 1;
+        CASH = 2;
+    }
+}
+
+// 财务报表玩游戏功能的角色资产信息
+// 这个主要来自于 cenarius 的 Asset
+message RoleAsset {
+    string id = 1;
+    int64 user_id = 2;
+    // 资产类型，程序需要逻辑上区别不同类别的资产时用这个字段来判断
+    // 目前只有工资需要特殊处理
+    RoleAssetType.Enum code = 3;
+    // 资产类型名称，这个是用来
+    string typeName = 4;
+    // 资产或负债的名字
+    string name = 5;
+    // 总额, 表示资产的总价
+    int64 totalAmount = 6;
+    // 负债金额, AssetsType 如果是房产, 表示银行贷款, 如果是负债则表示负债总额
+    int64 liabilityAmount = 7;
+    // 每月收入, 资产带来的月收入
+    int64 monthIncome = 8;
+    // 每月还款金额
+    int64 monthPayment = 9;
+}
+
+message GetUserDefinedRoleReq {
+    int64 user_id = 1;
+}
+
+// 查询已购买财务训练次数
+message TrainingGameBalanceReq {
+    int64 userID = 1;
+}
+
+// 查询已购买财务训练次数
+message TrainingGameBalanceRsp {
+    // 总数
+    int32 total = 1;
+    // 已使用
+    int32 consumed = 2;
+    // 表示可以免费使用的次数, 有时候进行限免活动或者免费赠送的余额都可以使用这个属性, 并且应该优先消耗免费次数
+    int32 free = 3;
+}
+
+// 消费财务训练次数
+message ConsumeTrainingReq {
+    int64 userID = 1;
+    // 消费的游戏 ID, 现在是在游戏开始以后才调用消费, 增加参数方便数据关联
+    int64 gameID = 2;
+}
+
+message ConsumeTrainingRsp {
+    int64 userID = 2;
+}

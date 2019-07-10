@@ -1,0 +1,1223 @@
+syntax = "proto3";
+package pb.common;
+
+option go_package = "gitlab.com/vectorup/asset-pb/go/common";
+
+import "common/state.proto";
+import "common/scenario.proto";
+import "common/round_data.proto";
+import "common/main.proto";
+import "common/types.proto";
+import "common/consts.proto";
+import "common/maps.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+/**
+ * 定义和前端交互的message
+ */
+
+// 下面注释中的 `switch scene to ...` 表示后端需要记录场景切换
+// 这个枚举没用使用
+enum SceneType {
+    option deprecated = true;
+    ST_PB_PLACEHOLDER   = 0;        // 占位符. first enum value must be zero in proto3
+    CHOOSE_ROLE         = 999;      // 选择角色
+    ROLLING             = 1000;     // 摇色子
+    CHANCE              = 1001;     // 机会页面
+    CHANCE_CHOOSED      = 1002;     // 选择了大、小机会
+    ASSET_BOUGHT        = 1003;     // 资产已购买
+    AUCTION_STARTED     = 1004;     // 加入了拍卖
+    AUCTION_IGNORED     = 1005;     // 忽略拍卖
+    AUCTION_JOINED      = 1006;     // 进入拍卖
+    AUCTION_COMPLETED   = 1007;     // 拍卖已完成(与机会默认页面有啥区别？)
+
+    ACCIDENT_CONSUME    = 1011;     // 意外消费
+    MARKET_TREND        = 1021;     // 市场机会
+    CHILD_BORN          = 1031;     // 生小孩
+    CHILD_BORN_REDPACKET_RECEIVED = 1032;   // 生小孩红包已接收
+    CHILD_BORN_IGNORED  = 1033;      // 生小孩已忽略
+    CHARITY             = 1040;      // 慈善
+    UNEMPLOYMENT        = 1050;      // 失业
+    WAGE_HIKE           = 1060;      // 加薪
+    PAYDAY              = 1070;      // 发薪日
+}
+
+enum ErrorCode {
+    reserved 2, 5;
+    reserved "DUP_DEVICE", "DUP_GAME";
+    // 0 - 100 为通用错误代码
+    // 原来加进去的就不动它了
+    // 请求成功
+    SUCC        = 0;
+    // 未登录
+    NOT_AUTH    = 1;
+//    DUP_DEVICE  = 2;   // 未使用
+    // 未知错误
+    FAILED      = 3;
+    NO_GAME     = 4;
+//    DUP_GAME    = 5;    // 未使用
+    // 服务器内部错误
+    INTERNAL_EXCEPTION = 10;
+    // 服务器拒绝连接, 版本号太低
+    CONN_REFUSED = 11;
+    // 服务器处于维护模式，暂时无法开始游戏
+    UNDER_MAINTENANCE = 12;
+    // 请求参数错误
+    INVALID_ARGUMENT = 13;
+    // 请求的对象不存在
+    NOT_FOUND = 14;
+
+    // 100 以上为业务错误代码
+    // 剩余财务训练次数不足
+    INSUFFICIENT_TRAINING_GAME = 101;
+
+    // 1000 - 2000 为 lobby 错误代码
+    // EnterRoomReq 错误
+    // 房间已满
+    ROOM_FULL = 1000;
+}
+
+//获取正在进行的游戏
+// 登录
+// cmd: LOGIN
+message GameLoginReq {
+    AssetBaseReq req = 1;
+    string token = 2;
+}
+message GameLoginRsp {
+    BaseRsp rsp = 1;
+}
+
+// 退出游戏，玩家破产后可以退出游戏
+message GameQuitReq {
+    AssetBaseReq req = 1;
+}
+
+message GameQuitRsp {
+    BaseRsp rsp = 1;
+}
+
+// 玩家离开游戏后广播消息
+message PlayerQuitGameMsg {
+    int64 userID = 1;
+    int64 gameID = 2;
+}
+
+// cmd: CHECK_PLAYING
+
+// cmd: MATCHING = 1005
+message MatchReq {
+    AssetBaseReq req = 1;
+}
+message MatchRsp {
+    BaseRsp rsp = 1;
+    int32 status = 2;     // 1:匹配中; 2: 匹配失败;
+}
+
+//匹配成功push推送消息 cmd:MATCHING
+message MatchMsg {
+    int32 status  = 1;   // 1: 匹配成功; 2: 匹配失败;
+    string roomId = 2;
+    repeated PlayerInfo members = 3;
+}
+
+// 退出匹配请求 cmd:EXIT_MATCH
+message ExitMatchReq {
+    string roomId = 1;
+}
+message ExitMatchRsp {
+    BaseRsp rsp = 1;
+}
+message ExitMatchMsg {
+    string roomId = 1;
+}
+
+// 准备消息 cmd: PREPARE
+message PrepareReq {}
+message PrepareRsp {
+    BaseRsp rsp = 1;
+}
+message PrepareMsg {
+    // int64 userId    = 1; 不需要，Payload中获取即可
+}
+// 有人未准备，超时 cmd:ANYONE_TIMEOUT
+message AnyoneTimeoutMsg {}
+// 所有玩家准备好 cmd: ALL_READY
+message AllReadyMsg {
+    // 后台开始倒计时选择玩家角色
+    repeated int64 userIds = 1;
+}
+
+// 该接口是获取用户信息的标准接口，可随时调用
+// 收到 AllReadyMsg后，并没有PlayerInfo，需要调用该接口获取
+message CheckPlayingReq {
+    AssetBaseReq req = 1;
+}
+
+message CheckPlayingRsp {
+    BaseRsp rsp = 1;
+    PlayerState state = 2;
+    // 如果在房间中的话，返回房间信息
+    RoomInfo room = 3;
+    // 如果在游戏中，这里返回游戏中的玩家列表
+    // 否则为空
+    repeated PlayerInfo players = 6;
+}
+
+
+// 关键路径，参见cmd.proto中的说明。
+//cmd: SYNC_STATE
+message SyncStateReq {
+    AssetBaseReq req = 1;
+}
+message SyncStateRsp {
+    BaseRsp     rsp = 1;
+    common.GameState state = 2;
+    // 使用 GamePlayer.role 代替
+    repeated PlayerRole playerRoles = 3[deprecated=true];
+    string          stage = 4;   //SELECT_ROLE, GAME_LOOP
+    string channelID = 5; // 语音和文字聊天的频道 ID(跟 GameID相同)
+    repeated GamePlayer players = 6; // 游戏中的玩家数据
+    // 游戏地图数据
+    common.GameMap map = 7;
+    // 游戏类型
+    common.MatchType matchType = 8;
+}
+
+
+message GamePlayer {
+    int64 userID = 1;
+    OnlineState onlineState = 2;
+
+    // 玩家选择的职业
+    PlayerRole role = 3;
+    // 玩家的当前的游戏数据
+    common.PlayerRecord playerGameData = 4;
+    message Dishonorable {
+        // 表示玩家触发了多次不投骰子的阈值, 该玩家自己可以选择退出游戏
+        bool punished = 1;
+        // 不投骰子的次数统计和最大容忍度
+        DishonorLazyOpt lazyOpt = 2;
+    }
+    Dishonorable dishonorable = 5;
+}
+
+// cmd: GET_ROLES
+message GetRolesReq {
+    AssetBaseReq req = 1;
+}
+
+message GetRolesRsp {
+    BaseRsp rsp = 1;
+
+    message Role{
+        int64 ID = 1;
+        string Name = 2;
+        int32 MonthExpense = 3; // 月花费
+        int32 MonthSalary = 4;  // 月工资
+        int32 MonthFlow = 5;    // 月现金流
+        int32 Deposit = 6;      // 存款
+        int32 BabyExpense = 7;  // 每个孩子花费
+        float WageHikePCT = 8;  // 升职调整薪资的百分比
+        string Avatar = 9; // 职业头像
+        bool Free = 10; // 是否免费
+        bool purchased = 11; // 是否已购买
+        // 职业晋升机会, eg: [教师, 年级主任, 副校长, 校长]
+        repeated string promotions = 12;
+        // 职业 flag, 职业的全局唯一标志
+        string flag = 13;
+    }
+
+    repeated Role data = 2;
+}
+
+// cmd: SELCET_ROLE
+message SelectRoleReq {
+    AssetBaseReq req = 1;
+    int64 roleId = 4;
+}
+message SelectRoleRsp {
+    BaseRsp rsp = 1;
+}
+message SelectRoleMsg {
+    int64 userId    = 1;
+    int64 roleId      = 2;      // 选择的角色类型
+    bool  isAllReady  = 3;      // 是否都已选择完角色
+}
+
+// loading完成时通知服务端。
+// 服务端也会倒计时。在这个时间之后，将开始游戏（下发第一个NextRollMsg)
+// cmd: PLAYER_BEGIN
+message PlayerBeginReq {
+    AssetBaseReq req = 1;
+}
+message PlayerBeginRsp {
+    BaseRsp rsp = 1;
+}
+
+// 玩家出局的消息
+// cmd: PLAYER_OUT
+message PlayerOutMsg {
+    reserved 3;
+    GameBaseMsg base     = 1;
+    int64   userId       = 2;
+    string  msg          = 4;    //简单的出局提示语
+    // 出局原因，显示在支付金额旁边
+    string  reason       = 5;
+    // 支付之前的现金
+    int32   cash         = 6;
+    // 支付之前的贷款额度
+    int32   loanQuota    = 7;
+    // 需要支付的金额
+    int32   expense      = 8;
+    enum OutReasonType {
+        DEFAULT = 0;
+        PAYDAY = 1;
+    }
+    OutReasonType reasonType = 9;
+}
+
+// init scene to ROLLING
+// 下一个人掷色子
+// cmd: NEXT_ROLL
+message NextRollMsg { // switch to ROLLING (in backend)
+    int64  userId           = 1;    // 掷骰子的人
+    timer timer = 2;  // 回合倒计时 默认 30s
+}
+
+// 扔色子
+// cmd: ROLL
+message RollReq {
+    // switch scene to ???（看具体摇出来的剧本是什么, 比如 CHANCE, ACCIDENT_CONSUME, MARKET_TREND, CHILD_BORN）
+    AssetBaseReq req = 1;
+    // 联调时使用，可以通过该字段指定摇色子的结果为想要的剧本
+    int32 mockScenarioType = 2 [deprecated=true];
+    // 联调时候使用, 通过该字段控制意外消费，支付方式
+    int32 mockPayment = 3 [deprecated=true];
+    // 联调时候控制具体内容
+    int64 mockScenarioId = 4 [deprecated=true];
+    // 1: 不是或未经过发薪日，2: 正好是发薪日，3: 经过发薪日
+    int32 mockPayDay = 5 [deprecated=true];
+    // mock game over
+    bool mockGameOver = 6 [deprecated=true];
+}
+
+message RollRsp {
+    BaseRsp rsp = 1;
+}
+message RollMsg {
+    GameBaseMsg base            = 1;
+
+    // NOTE(QuantumGhost): 新版本里面地图上没有发薪日了，所以说不会有 isPayDay = 2 的情况了
+    // 如果一个发薪日都没有经过，这里就是 1，否则就是 3
+    int32 isPayDay              = 2; // 1: 不是或未经过发薪日，2: 正好是发薪日，3: 经过发薪日
+    int32 num                   = 3; // 色子点数
+
+    int64 scenarioId            = 4; // 剧本ID
+    int32 scenarioType          = 5; // * SCENARIO_TYPE_*
+    Scenario scenario           = 6; // 剧本内容（牌），如果是机会买卖，则为空，需要等到选择机会时下发新的剧本
+
+    RoundData       roundData   = 7; // 该回合和用户相关的数据
+    timer timer                 = 8; // 如果有可售资产, timer > 0
+    repeated int64 traders      = 9; // 可以出售资产的人
+
+    // 骰子结束后玩家位置变化路径信息
+    message Route {
+        // 地图位置坐标
+        message Location {
+            // 圈数
+            int32 cycle = 1;
+            // 本圈所在的位置
+            int32 step = 2;
+        }
+
+        // 移动前位置
+        Location src = 1;
+        // 移动到该位置
+        Location dst = 2;
+    }
+    // 骰子结束后地图位置变化
+    Route move = 10;
+    message SalaryInfo {
+        // 距离起点的步数
+        int32 steps = 1;
+        // 是否要破产，为 true 时表示走到这个位置时玩家无法支付结算日需要支付的现金流，
+        // 将要破产，需要客户端发送 CONFIRM_BANKRUPT 命令完成破产逻辑，发送破产消息并进入下一回合
+        bool willBankrupt = 2;
+        // 经过该日时领到的薪水
+        int32 salary = 3;
+        // 下面几个字段只有 willBankrupt = true 是才有意义
+        // 该次结算日处理之前的现金数额
+        int32 cash = 4;
+        // 该次结算日处理之前的可贷款金额
+        int32 loanQuota = 5;
+    }
+    // 每经过一个结算日，就会多一个 salaryInfo 项
+    repeated SalaryInfo salaryInfo = 11;
+}
+// ---------------------------- 发薪水--------------------------------//
+
+
+// NOTE(QuantumGhost): 新版路径没有结算日确认逻辑了
+message CompleteSalaryReq {
+    option deprecated = true;
+    AssetBaseReq req = 1;
+}
+message CompleteSalaryRsp {
+    option deprecated = true;
+    BaseRsp  rsp = 1;
+}
+message CompleteSalaryMsg {
+    option deprecated = true;
+    GameBaseMsg base= 1;
+}
+
+// ---------------------------- 发薪水-------------------------------- //
+
+
+// ------------------------------  意外消费 ---------------------------//
+// 意外消费支付请求
+// cmd: PAY_ACCIDENT_CONSUME
+message PayAccidentConsumeReq {
+    // needn't switch scene
+    AssetBaseReq req = 1;
+    // mock 用的支付类型，见 PaymentType
+    int32 mockPayment = 2 [deprecated=true];
+}
+
+message PayAccidentConsumeRsp {
+    BaseRsp rsp = 1;
+    int32 payment = 2; // 支付方式 1: 现金支付, 2:贷款支付, 3: 不能支付
+    int32 balance = 3;  // 如果是贷款支付，这里是需要贷款的金额
+}
+
+message PayAccidentConsumeMsg {
+    GameBaseMsg base            = 1;
+    Scenario scenario           = 5;    // 剧本内容（牌），如果是机会买卖，则为空，需要等到选择机会时下发新的剧本
+}
+
+// ------------------------------  意外消费 ---------------------------//
+
+// ----------------------------------- 机会及拍卖流程 ------------------------------//
+// https://gist.github.com/QuantumGhost/6f0ecc30ec5a09ef8b464fe4bb6d8219
+// 选择机会
+// cmd: CHOOSE_CHANCE
+message ChooseChanceReq { // switch scene to CHANCE_CHOOSED
+                          AssetBaseReq req = 1;
+    int64 mockScenarioId = 2; // 联调时候控制具体内容
+    int32   chanceType   = 3; // 3: 大买卖  4: 小生意
+}
+
+message ChooseChanceRsp {
+    BaseRsp rsp = 1;
+}
+message ChooseChanceMsg {
+    GameBaseMsg base            = 1;
+
+    // 选择机会之后会推送新的剧本信息
+    Scenario scenario           = 2;    // 剧本内容（牌）
+    int32 canSellCnt = 3; // 可售数量
+    timer timer = 4;
+    repeated int64 traders = 5; // 可出售资产的玩家
+}
+
+// 购买
+// cmd: BUY
+message BuyReq { // switch scene to ASSET_BOUGHT
+                 AssetBaseReq req = 1;
+
+    int32   quantity      = 2; // 购买数量，主要指购买股票，基金的数量，默认为1
+}
+
+message BuyRsp {
+    BaseRsp rsp = 1;
+}
+message BuyMsg {
+    GameBaseMsg base            = 1;
+
+    Scenario scenario           = 2;    // 剧本内容（牌）
+    int32   quantity             = 3;    // 购买数量
+}
+
+// 其他玩家出售股票
+// cmd: SELL_STOCK
+message SellStockReq {
+    option deprecated=true;
+
+    AssetBaseReq req = 1;
+    // 出售的数量
+    int32 quantity         = 2;
+    int64 playerAssetId    = 3; // 资产 ID
+}
+
+message SellStockRsp {
+    option deprecated=true;
+    BaseRsp rsp            = 1;
+}
+
+message SellStockMsg {
+    option deprecated=true;
+    GameBaseMsg base       = 1;
+    Scenario scenario      = 2;   // 剧本内容（牌）
+    int32 quantity         = 3;   // 出售的数量
+}
+
+// 放弃机会，不买了
+// 大机会和小买卖都是这个
+// cmd: GIVEUP_CHANCE = 2020;
+message GiveUpChanceReq {
+    AssetBaseReq base = 1;
+}
+
+message GiveUpChanceRsp {
+    BaseRsp rsp                 = 1;
+}
+
+message GiveUpChanceMsg {
+    GameBaseMsg base            = 1;
+}
+
+//---------------------------------- 拍卖 ---------------------------------//
+// 发起拍卖
+// cmd: START_AUCTION
+message StartAuctionReq { // switch scene to AUCTION_STARTED
+                          AssetBaseReq req = 1;
+
+    int32 floorPrice     = 2; //低价
+}
+
+message StartAuctionRsp {
+    BaseRsp rsp = 1;
+    int64 auctionId = 2;
+}
+
+message StartAuctionMsg {
+    GameBaseMsg base            = 1;
+
+    Scenario scenario           = 2;    // 剧本内容（牌）
+    int32 floorPrice            = 3;    // 底价
+    int64 auctionId             = 4;    // 拍卖 ID
+    timer timer                 = 5;
+    // 参与拍卖或者加价倒计时 (秒), 超过这个时间没有新的竞价产生流拍或者按照当前竞价成交
+    int32 raise_timeout          = 6;
+}
+
+// 放弃拍卖
+// cmd: GIVEUP_AUCTION
+message GiveUpAuctionReq { // switch scene to AUCTION_IGNORED
+                           AssetBaseReq req = 1;
+    int64 auctionId  = 2;
+}
+
+message GiveUpAuctionRsp {
+    BaseRsp  rsp = 1;
+}
+message GiveUpAuctionMsg {
+    GameBaseMsg base            = 1;
+    bool            isAllReady  = 2;    // 是否所有玩家已就绪
+    repeated  int64  userIds  = 3;    // 参加拍卖的玩家
+}
+
+// DEPRECATED
+// NOTE(QuantumGhost): 现在都是默认加入拍卖，这个加入拍卖指令暂时没用了。
+// 加入拍卖
+// cmd: JOIN_AUCTION
+//message JoinAuctionReq {    // switch scene to AUCTION_JOINED
+//    BaseReq req      = 1;
+//}
+//message JoinAuctionRsp {
+//    BaseRsp rsp = 1;
+//}
+//message JoinAuctionMsg {
+//    GameBaseMsg base            = 1;
+//    bool            isAllReady  = 2;    // 是否所有玩家已就绪
+//    repeated  int64  userIds  = 3;    // 参加拍卖的玩家
+//}
+
+// 拍卖出价
+// cmd: OFFER_AUCTION_BID
+message AuctionBidReq {
+    AssetBaseReq req = 1;
+    int32 amount     = 6; // 出价
+    int64 auctionId  = 7;
+}
+message AuctionBidRsp {
+    BaseRsp rsp = 1;
+}
+message AuctionBidMsg {
+    GameBaseMsg base     = 1;
+    int32   amount       = 6;    // 出价
+    // 加价倒计时, 有了新的竞价后会重置倒计时
+    int32 raise_timeout = 7;
+}
+
+// 拍卖结果的消息
+// NOTE(QuantumGhost): 这个地方目前还不确定是在付款成功之后才发送 AuctionResult
+// 还是在拍下之后就发送
+//
+// 确认付款后所有玩家才会收到该消息，然后不同的角色有不同的处理
+// 中标者显示中标画面，过一会回到机会处理场景(ChooseChange之后的场景)
+// 拍卖结束（成功、流拍）XXX 系统需要自动扣款？ 否则玩家不操作，超时后也需要自动处理
+// cmd: AUCTION_RESULT
+message AuctionResultMsg {// switch scene to AUCTION_COMPLETED
+    bool  playerWon   = 1;    // 是否竞拍成功
+    int64  winnerId   = 2;    // 竞拍成功者的ID
+    int64 auctionId   = 3;
+    int32  amount     = 6;    // 最终出价
+}
+
+
+
+// -------------------------- 市场讯息 ---------------------------------//
+// 结束市场求购处理
+// cmd: COMPLETE_MARKET
+message CompleteMarketReq { // needn't switch scene
+                            AssetBaseReq req = 1;
+    bool  giveup     = 2;
+}
+message CompleteMarketRsp {
+    BaseRsp  rsp = 1;
+}
+message CompleteMarketMsg {
+    GameBaseMsg  base = 1;
+    bool  giveup      = 2;
+}
+
+// -------------------------- 市场讯息 ---------------------------------//
+
+// ------------------------ 生小孩 --------------------------//
+
+// 忽略生小孩
+// cmd: IGNORE_CHILD_BORN
+message IgnoreChildBornReq { // switch scene to CHILD_BORN_IGNORED
+                             AssetBaseReq req = 1;
+}
+message IgnoreChildBornRsp {
+    BaseRsp rsp = 1;
+}
+message IgnoreChildBornMsg {
+    GameBaseMsg base = 1;
+}
+
+// 发红包 SEND_CHILD_BIRTH_REDPACKET = 2070
+// cmd: PAY_CHILD_BORN_REDPACKET
+message PayChildBornRedPacketReq { // switch scene to CHILD_BORN_REDPACKET_RECEIVED
+                                   AssetBaseReq req = 1;
+    int32 amount = 5; //红包金额
+}
+message PayChildBornRedPacketRsp {
+    BaseRsp rsp = 1;
+}
+message PayChildBornRedPacketMsg {
+    GameBaseMsg  base = 1;
+    int32 amount = 2; //红包金额
+    int64 toUserId  = 3; // 发给谁
+}
+
+// ------------------------ 生小孩 --------------------------//
+
+
+// 卖 SELL = 2025
+message SellReq {
+    option deprecated=true;
+
+    AssetBaseReq req = 1;
+    int64 playerAssetId = 4; // 资产 ID
+    int32 quantity =6; // 数量，主要指购买股票，基金的数量
+}
+message SellRsp {
+    option deprecated=true;
+
+    BaseRsp rsp = 1;
+}
+
+message SellMsg {
+    option deprecated=true;
+
+    GameBaseMsg base = 1;
+    // 卖出总价
+    int32 price = 2;
+    // 卖出资产的名称
+    string name = 3;
+}
+
+message GetCanSellPlayerAssetReq {
+    AssetBaseReq req = 1;
+}
+
+message PlayerAsset {
+    int64 id                = 1;
+    string name             = 2;    // 资产名称
+    string code             = 4;
+    int32 totalPrice        = 5;    // 总价 (购买总价)
+    int32 unitPrice         = 6;    // 单价 (购买单价)
+    int32 downPayment       = 7;    // 首付 (购买时的首期支付)
+    int32 monthCashFlow     = 8;    // 月现金流
+    int32 liabilities       = 9;    // 负债(贷款)
+    int32 income            = 10;   // 每月收入
+    int32 expense           = 11;   // 每月支出
+    int32 quantity          = 12;   // 数量
+    int32 shard             = 13;   // 份额
+    int32 mark              = 14;
+    int32 sellPrice         = 15;   // 出售价
+    int32 profit            = 16;   // 利润
+    string imgFile          = 17;   // 图像地址
+}
+
+message GetCanSellPlayerAssetRsp {
+    BaseRsp rsp = 1;
+    repeated PlayerAsset data = 2;
+}
+
+
+// 贷款 LOAN = 2026
+message LoanReq {
+    AssetBaseReq req = 1;
+    int32 amount = 2;
+}
+
+message LoanRsp {
+    BaseRsp rsp = 1;
+    int32 totalCash = 2; // 现金总量
+}
+
+message LoanMsg {
+    GameBaseMsg base = 1;
+    // 贷款数量
+    int32 amount     = 2;
+}
+
+// 还贷款 REPAY_LOAN = 2027;
+message RepayLoanReq {
+    AssetBaseReq req = 1;
+    int64 playerAssetId = 2; // 资产 ID
+    int32 amount = 3;
+}
+
+message RepayLoanRsp {
+    BaseRsp rsp = 1;
+}
+
+// 偿还负债 REPAY_LIABILITIES = 2036
+message RepayLiabilitiesReq {
+    AssetBaseReq req = 1;
+    int64 playerAssetId = 5; // 资产 ID
+    int32 amount = 6;
+}
+
+message RepayLiabilitiesRsp {
+    BaseRsp rsp = 1;
+}
+
+
+// 升职扔色子 WAGE_HIKE_ROLL = 2073
+message WageHikeRollReq {
+    AssetBaseReq req = 1;
+}
+
+message WageHikeRollRsp {
+    BaseRsp rsp = 1;
+}
+
+// 升职推送消息 WAGE_HIKE_ROLL
+message WageHikeMsg {
+    GameBaseMsg base = 1;
+    int32 num = 2;  // 骰子点数
+    int32 incr = 3; // 增长金额
+    bool isPromotion = 4; // 是否升职
+    message Promotion {
+        // 升职前的职业名字
+        string before = 1;
+        // 升职后的职业名字
+        string after = 2;
+    }
+    // 如果升职该属性返回职位变更
+    Promotion promotion = 5;
+}
+
+
+// 获取所有玩家数据 GET_PLAYERS_DATA
+message GetFinancialReportsReq {
+    AssetBaseReq req = 1;
+}
+
+message GetFinancialReportsRsp {
+    BaseRsp rsp = 1;
+
+    message FinancialReport{
+        int32 MonthSalary = 2; // 月工资收入
+        int32 MonthExpense = 3; // 月支出
+        int32 MonthIncomeExSalary = 4; // 月非工资收入
+        int32 MonthCashFlow       = 5; // 月现金流
+        int32 TotalCash           = 6; // 现金总量
+    }
+    repeated FinancialReport data = 2;
+}
+
+// 获取玩家所有资产 GET_PLAYER_ASSET
+message GetPlayerAssetReq {
+    AssetBaseReq req = 1;
+}
+
+message GetPlayerAssetRsp {
+    BaseRsp rsp = 1;
+    repeated PlayerAsset data = 2;
+}
+
+// 获取玩家贷款资产 GET_PLAYER_LOAN_ASSET
+message GetPlayerLoanAssetReq {
+    AssetBaseReq req = 1;
+}
+
+message GetPlayerLoanAssetRsp {
+    BaseRsp rsp = 1;
+    repeated PlayerAsset data = 2;
+}
+
+message TestPushReq {
+    // 消息类型 common.scenario.proto
+    int32 type = 1;
+    // 用户 id，表示来自或者发给哪个用户
+    int64 userId = 3;
+    // 请求体
+    bytes content = 4;
+}
+
+// LOAN_QUALIFICATION = 贷款资质查询
+message GetLoanQualificationReq {
+    AssetBaseReq req = 1;
+}
+
+message GetLoanQualificationRsp {
+    BaseRsp rsp = 1;
+    int32 amount = 2; // 剩余额度
+    float loanRatePCT = 3;// 月利率百分比
+    // 可贷款金额与工资的倍数
+    int32 loanMultiplier = 8;
+
+    message RecLoan{
+        int32 amount = 1;   // 金额
+        int32 interest = 2; // 利息
+    }
+
+    repeated RecLoan recList = 4;
+    // 贷款总额提示
+    string loanLimitPrompt = 5;
+    // 贷款总额限制
+    int64 loanLimit = 6;
+    // 当前贷款总额
+    int64 totalLoan = 7;
+}
+
+// 失业确认 UNEMPLOYMENT_ACK =  2074
+message UnemploymentAckReq {
+    AssetBaseReq req = 1;
+}
+
+message UnemploymentAckRsp {
+    BaseRsp rsp = 1;
+}
+
+message GameReportItem {
+    int64 userId            = 1;
+    int32 stockCnt          = 4;
+    int32 houseCnt          = 5;
+    int32 companyCnt        = 6;
+    float degree            = 7;    // 财富自由度，例：80代表80%
+    // 股权投资的数量
+    int32 equityCnt         = 8;
+}
+
+message GameOverMsg {
+    repeated GameReportItem data = 2;
+    int64 winnerId = 3;        // 如果 winnerId = 0 表示全部失败？没有赢家
+    enum endType {
+        // 正常结束
+        normal = 0;
+        // 全局倒计时结束
+        timeout = 1;
+        // 管理员强制结束
+        force = 2;
+        // 所有人都出局
+        allBust = 3;
+    }
+    endType typ = 4;  // 游戏结束类型(原因)
+    int64 gameId = 5;
+    // 游戏结算奖励
+    map<int64, GameBonus> bonus = 6;
+    // 游戏开始时间
+    google.protobuf.Timestamp startedAt = 7;
+    google.protobuf.Timestamp  endedAt= 8;
+
+    // 玩家职业
+    repeated PlayerRole roles = 9;
+}
+
+
+message TryPayReq {
+    AssetBaseReq req = 1;
+    int32 quantity = 2; // 数量
+}
+
+message TryPayRsp {
+    // 这里不考虑负债
+    BaseRsp rsp = 1;
+    int32 payment = 2;         // 支付方式 1: 现金支付, 2:贷款支付, 3: 不能支付
+    int32 balance = 3;         // 如果是贷款支付，这里是需要贷款的金额
+    int32 cash = 4;   // 支付现金金额
+}
+
+// 拍卖尝试出价 AUCTION_TRY_RAISE = 2119;
+message AuctionTryRaiseReq {
+    AssetBaseReq req = 1;
+    int64 price = 2;
+}
+
+message AuctionTryRaiseRsp {
+    BaseRsp rsp = 1;
+    PaymentType payment = 2;   // 支付方式 1: 现金支付, 2:贷款支付, 3: 不能支付
+    int64 balance = 3;        // 如果是贷款支付，这里是需要贷款的金额
+    int64 cash    = 4;   // 支付现金金额
+}
+
+message GetStatementReq {
+    AssetBaseReq req = 1;
+    int64 userId = 2;
+}
+message GetStatementRsp {
+    BaseRsp rsp = 1;
+    string  JsonBody = 2;
+    // 财务报表
+    AssetStatement assetStatement = 3;
+}
+
+message PassReq {
+    AssetBaseReq req = 1;
+}
+
+message PassRsp {
+    BaseRsp Rsp = 1;
+}
+
+message PlayerAllSelectedRoleMsg {
+    GameBaseMsg base = 1;
+    repeated PlayerRole roles = 2;
+}
+
+// 开始匹配: START_MATCHING = 1021
+message StartMatchingReq {
+    AssetBaseReq req = 1;
+    string roomId    = 2;
+}
+
+message StartMatchingRsp {
+    BaseRsp Rsp = 1;
+}
+
+message StartMatchingMsg {
+    GameBaseMsg base = 1;
+}
+
+// 退出房间： EXIT_ROOM = 1022
+// 注意这个是没有消息的，其他人收到的是 ROOM_INFO 消息
+message ExitRoomReq {
+    AssetBaseReq req = 1;
+}
+
+message ExitRoomRsp {
+    BaseRsp rsp = 2;
+}
+
+// 房间信息更新：ROOM_INFO = 1023
+message RoomInfoReq {
+    AssetBaseReq req = 1;
+    string roomId    = 2;
+}
+
+message RoomInfoRsp {
+    BaseRsp rsp           = 1;
+    RoomInfo room         = 2;
+}
+
+message RoomInfoMsg {
+    GameBaseMsg  base     = 1;
+    RoomInfo room         = 2;
+}
+
+// 创建房间: CREATE_ROOM = 1024
+message CreateRoomReq {
+    AssetBaseReq req = 1;
+    // 房间的大小，这里的大小必须要在 GET_AVAILABLE_ROOM_SIZE 的返回中
+    uint32 size  = 2;
+    MatchType matchType = 3;
+    // 是否是测试用户，测试用户在灰度测试时会被分到新版游戏
+    bool isABTester = 4;
+//    // 创建房间的选项,
+//    RoomOption opt = 5;
+}
+
+message CreateRoomRsp {
+    BaseRsp rsp      = 1;
+    RoomInfo room    = 2;
+}
+
+message GetAvailableRoomSizeReq {
+    AssetBaseReq req = 1;
+    MatchType matchType =2;
+}
+
+// 获取可用房间大小：GET_AVAILABLE_ROOM_SIZE = 1025;
+message GetAvailableRoomSizeRsp {
+    BaseRsp rsp = 1;
+    // 注意这里目前房间大小是 uint8 (0-255) 范围内的
+    repeated uint32 sizes = 2;
+}
+
+
+// 发送邀请：INVITE = 1026;
+message InviteReq {
+    AssetBaseReq req   = 1;
+    string roomId      = 2;
+    int64 userId       = 3;
+    // 如果是发送邀请到群，提供需要发送的群组ID
+    string groupId     = 4;
+}
+
+message InviteRsp {
+    BaseRsp rsp = 1;
+}
+
+message InviteMsg {
+    GameBaseMsg base   = 1;
+    string roomId      = 2;
+    PlayerInfo invitor = 3;
+}
+
+
+// 进入房间：ENTER_ROOM = 1027;
+message EnterRoomReq {
+    AssetBaseReq req = 1;
+    // 要加入的房间的 id，微信邀请时使用
+    string roomId    = 2;
+    // 要加入的房间的数字，快速加房间功能使用
+    // 使用 -1 表示未指定
+    // 如果 roomNum != -1 则 roomId 无效
+    // 目前 roomNum 为四位数字（0000 - 9999）
+    int32 roomNum      = 3;
+}
+
+message EnterRoomRsp {
+    BaseRsp rsp   = 1;
+    RoomInfo room = 2;
+}
+
+// 获取玩家状态：GET_PLAYER_STATE = 1028;
+message GetPlayerStateReq {
+    AssetBaseReq req = 1;
+    repeated int64 userIds = 2;
+}
+
+message GetPlayerStateRsp {
+    BaseRsp rsp = 1;
+    map<int64, PlayerState> states = 2;
+}
+
+message RemovePlayerFromRoomReq {
+    AssetBaseReq req = 1;
+    int64 userId     = 2;
+}
+
+message RemovePlayerFromRoomRsp {
+    BaseRsp rsp = 1;
+}
+
+message RemovePlayerFromRoomMsg {
+    GameBaseMsg base     = 1;
+    // 被移除的玩家的 ID
+    int64 userId         = 2;
+    // 被谁移除
+    PlayerInfo removedBy = 3;
+}
+
+// 用户离线 req, 用户可以选择主动发送离线请求, 成功后
+message PlayerAFKReq {
+    AssetBaseReq req = 1;
+}
+
+// 用户离线 rsp
+message PlayerAFKRsp {
+    BaseRsp rsp = 1;
+}
+
+// 用户离线 msg
+message PlayerAFKMsg {
+    int64 UserID = 1;
+}
+
+// 玩家重连上线, AFK 或者连接断开后可使用
+message PlayerReConnectReq {
+    AssetBaseReq req = 1;
+}
+
+message PlayerReconnectRsp {
+    BaseRsp rsp = 1;
+}
+
+message PlayerReconnectMsg {
+    int64 userID = 1;
+}
+
+//// 用户托管 req
+//message PlayerBRBReq {
+//    AssetBaseReq req = 1;
+//}
+//
+//// 用户托管 rsp
+//message PlayerBRBRsp {
+//    BaseRsp rsp = 1;
+//}
+//
+//// 用户取消托管 req
+//message PlayerCancelBRBReq {
+//    AssetBaseReq req = 1;
+//}
+//
+//// 用户取消托管 rsp
+//message PlayerCancelBRBRsp {
+//    BaseRsp rsp = 1;
+//}
+//
+//// 用户托管/取消托管 msg
+//message PlayerBRBMsg {
+//    GameBaseMsg base= 1;
+//    // true - BRB, false - cacel BRB
+//    bool BRB = 2;
+//}
+
+// 卖出资产操作请求
+message SellAssetsReq {
+    AssetBaseReq req = 1;
+
+    message item {
+        // 资产 ID
+        int64 assetID = 1;
+        // 数量，主要指购买股票，基金的数量
+        int32 quantity =2;
+    }
+
+    // 卖出项目
+    repeated item items = 2;
+}
+
+// 卖出资产操作返回
+message SellAssetsRsp {
+    BaseRsp rsp = 1;
+}
+
+// 卖出资产操作广播
+message SellAssetsMsg {
+    GameBaseMsg base = 1;
+    repeated PlayerAsset assets = 2;
+}
+
+
+// CONFIRM_BANKRUPT = 2141;
+message ConfirmBankruptReq {
+    AssetBaseReq req = 1;
+}
+
+message ConfirmBankruptRsp {
+    BaseRsp rsp = 1;
+}
+
+
+// CONFIRM_MARKET_CHANGE = 2151
+message ConfirmMarketChangeReq {
+    AssetBaseReq req = 1;
+}
+
+message ConfirmMarketChangeRsp {
+    BaseRsp rsp = 1;
+}
+
+message DishonorablePunishReason {
+    enum Enum {
+        Unknown = 0;
+        // 玩家多次在回合中不操作
+        LazyOpt = 1;
+        // 网络环境不好惩罚
+        TerribleNetwork = 2;
+    }
+}
+
+// 玩家不投骰子的惩罚消息
+message DishonorLazyOpt {
+    // 已累计的的犯规次数
+    int32 cnt = 1;
+    // 最大容忍次数, count >= tolerance 的时候会被轮空, 客户端可以提示退出
+    int32 tolerance = 2;
+}
+
+// 玩家不投骰子的消息
+message DishonorablePunishMsg {
+    int64 userID = 1;
+    // 类型
+    DishonorablePunishReason.Enum reason = 2;
+    // 详情
+    google.protobuf.Any detail = 3;
+}
+
+//// 房间可配置项目
+//message RoomChoice {
+//    // 可选项的显示名, eg: 房间人数
+//    string name = 1;
+//    // 选项是否可用, true - 表示可以设置, false - 不能设置
+//    bool active = 2;
+//    // 可选项的显示值, eg: {"4人", "6人"},
+//    // 选择后按照数组 idx 顺序提交, eg: "4人" -> 0
+//    repeated string displayValue = 3;
+//    // 当前选择的值, eg: 1 - "6人"
+//    int32 value = 4;
+//}
+//
+//// 房间可以使用的设置项目
+//message RoomAvailableChoices {
+//    string roomID = 1;
+//    repeated RoomChoice choices = 2;
+//}
+
+
+// 修改房间自定义选项 req, 只有 owner 可以修改设置
+message UpdateRoomChoicesReq {
+    AssetBaseReq req = 1;
+    string roomID = 2;
+    // 玩家设置的规则
+    RoomOption opt = 3;
+}
+
+// 修改房间自定义选项 rsp
+message UpdateRoomChoicesRsp {
+    BaseRsp rsp = 1;
+    string roomID = 2;
+    RoomOption opt = 3;
+}
+
+message GetUniqueScenarioImgNameReq {
+    AssetBaseReq req = 1;
+    
+}
+
+message GetUniqueScenarioImgNameRsp {
+    BaseRsp rsp = 1;
+    repeated string img_files = 2;
+}
+
+message GetAvailableMapsReq {
+    AssetBaseReq req = 1;
+}
+
+message GetAvailableMapsRsp {
+    BaseRsp rsp = 1;
+    repeated MapItem maps = 2;
+}

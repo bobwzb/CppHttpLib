@@ -1,0 +1,33 @@
+syntax = "proto3";
+package pb.common;
+
+option go_package = "gitlab.com/vectorup/asset-pb/go/common";
+
+// 系统间消息传输格式
+// client ==>[content + mars.CmdID]===> agent ==>[Payload]===> backendSrv。 客户端同步请求通过Payload进行转化
+// backendSrv ==>[Payload]===> agent ===>[mars.CMD_PUSH + Payload]===> client。 Push过程通过Payload进行转化
+message Payload {
+    // 消息类型，对应CmdID
+    int32 type = 1;
+
+    // 用户ID
+    // 如果是客户端的请求: 请求用户ID
+    // 如果是服务端响应客户端的请求： 对应请求的用户ID
+    // 如果是服务端push消息到客户端： 该push消息内容的主语（需要按业务确定）  // TODO 值得商榷，userId是content的主语，影响逻辑分层
+    int64 userId = 2;
+
+    // 业务数据，任意格式，当前是proto的序列化格式
+    bytes content = 3;
+
+    // 推送时用来标注推送用户 id 的字段
+    // 原来的 agent -> lobby, agent -> game 是每个用户单独建立一条推送通道（gRPC stream），不过这样做不方便
+    // 推送通道的维护
+    // 现在修改成 agent 跟 lobby 和每个 game 只建立一个推送通道，不过这样就需要标识推送过去的消息是推给谁的
+    // 这个字段就是拿来做这个用处的
+    int64 pushToUserId = 4;
+}
+
+message timer {
+    int32 total = 3;    // 定时器总时间
+    int32 remaining = 2; // 剩余时间
+}

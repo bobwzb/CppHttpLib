@@ -1,0 +1,23 @@
+syntax = "proto3";
+package pb.common;
+
+option go_package = "gitlab.com/vectorup/asset-pb/go/common";
+
+// 市场变化类型，对应 S_MARKET_CHANGE
+// 注意，这里没有记录对应的变化是影响当前玩家还是所有玩家
+// 这个数据有 scenario 模型来做记录
+message MarketChangeType {
+    enum Enum {
+        UNKNOWN = 0;
+        // 房租上升
+        RENT_INCREASE = 1;
+        // 房租下降
+        RENT_DECREASE = 2;
+        // 股权投资破产清零
+        EQUITY_BANKRUPT = 3;
+        // 企业投资收入上升
+        COOP_INCOME_INCREASE = 4;
+        // 企业投资收入下降
+        COOP_INCOME_DECREASE = 5;
+    }
+}

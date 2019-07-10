@@ -1,0 +1,14 @@
+syntax = "proto3";
+package pb.common;
+
+option go_package = "gitlab.com/vectorup/asset-pb/go/common";
+
+message Error {
+    int32 code = 1;
+    string message = 2;
+    string stack = 3;
+}
+
+message StreamInitParam {
+    int64 userId = 1;
+}

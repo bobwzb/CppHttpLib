@@ -1,0 +1,31 @@
+{
+  "ver": "2.2.0",
+  "uuid": "72c1b153-2d95-4817-a3fe-ac9e1ee09969",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "subMetas": {
+    "income_panel_title": {
+      "ver": "1.0.3",
+      "uuid": "3f02dcbe-ef11-428e-a245-e5d00866d8be",
+      "rawTextureUuid": "72c1b153-2d95-4817-a3fe-ac9e1ee09969",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": 32.5,
+      "offsetY": 0.5,
+      "trimX": 198,
+      "trimY": 14,
+      "width": 109,
+      "height": 33,
+      "rawWidth": 440,
+      "rawHeight": 62,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}

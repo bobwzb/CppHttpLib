@@ -1,0 +1,31 @@
+{
+  "ver": "2.2.0",
+  "uuid": "f6f2e2a0-5840-4dd3-b774-c63377cbc6be",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "subMetas": {
+    "cashflow_panel_title": {
+      "ver": "1.0.3",
+      "uuid": "38dbbd01-c606-4566-be49-45e97ef51577",
+      "rawTextureUuid": "f6f2e2a0-5840-4dd3-b774-c63377cbc6be",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": 34,
+      "offsetY": 0.5,
+      "trimX": 162,
+      "trimY": 14,
+      "width": 184,
+      "height": 33,
+      "rawWidth": 440,
+      "rawHeight": 62,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "ver": "2.2.0",
+  "uuid": "efe98729-4066-4823-81bb-dfec416d2595",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "subMetas": {
+    "roadMarket Light": {
+      "ver": "1.0.3",
+      "uuid": "a4d68df2-ee25-4c1e-bb66-637920af3736",
+      "rawTextureUuid": "efe98729-4066-4823-81bb-dfec416d2595",
+      "trimType": "custom",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": 0,
+      "offsetY": 0,
+      "trimX": 0,
+      "trimY": 0,
+      "width": 440,
+      "height": 280,
+      "rawWidth": 440,
+      "rawHeight": 280,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}

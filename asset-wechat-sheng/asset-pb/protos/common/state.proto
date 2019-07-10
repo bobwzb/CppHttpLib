@@ -1,0 +1,70 @@
+syntax = "proto3";
+package pb.common;
+
+import "common/scenario.proto";
+import "common/round_data.proto";
+import "common/main.proto";
+option go_package = "gitlab.com/vectorup/asset-pb/go/common";
+
+
+// 现金流
+message CashFlow {
+    int64 monthlySalary         = 1; // 月工资收入
+    int64 monthlyIncomeExSalary = 2; // 月非工资收入
+    int64 monthlyExpenses       = 3; // 月总支出
+    int64 monthlyCashFlow       = 4; // 月现金流
+    int64 totalCash             = 5; // 现金总量
+}
+
+// 资产（负债也作为一种资产)
+message Asset {
+    int64  assetId          = 1;
+    string name             = 2;    // 资产名字
+    int32  type             = 3;    // 资产类型
+    int64  totalPrice       = 4;    // 总价
+    int64  Liabilities      = 5;    // 负债
+    int64  monthlyCashFlow  = 6;    // 收入（对月现金流的贡献）
+    int32  quantity         = 8;    // 数量
+    int32  shard            = 9;    // 每个资产可分拆份数，默认1
+}
+
+message PlayerRecord {
+    int64                   userId      = 1;
+    CashFlow                cashFlow    = 2;    // 玩家的现金流
+    int32                   BehaviorType = 3;
+    float                   degree      = 5;    // 财富自由度，例：80代表80%
+    bool                    isOut       = 6;    // 改玩家是否已出局(破产)
+    int64                   videotapeId = 7;    // 游戏录像带ID(推进游戏进程)
+    int32                   currentLocation = 8;   // 当前位置
+    int32                   cycle       = 9;    // 当前圈数
+    // 玩家年龄, 默认25, 如果有填写生日使用生日计算, 每经过一次结算日 +1
+    int32                   age         = 10;
+    // 初始年龄, 根据玩家填写的生日计算初始年龄
+    int32                   initAge     = 11 [deprecated=true];
+}
+
+message GameState {
+    int64                   userId          = 2;   // 当前回合的掷骰子玩家
+    int32                   roundSeq        = 3;   // 当前是第几回合
+    int32                   currentLocation = 4;   // 当前位置
+    int32                   diceNum         = 5;   // 骰子点数
+    RoundData               roundData       = 6;
+    Scenario                scenario        = 7;
+    repeated  PlayerRecord  playerRecords   = 8;   // 所有的玩家
+    timer                   timer           = 9;             // 当前回合剩余的倒计时
+    timer                   globalTimer     = 10;  // 游戏全局倒计时, 倒计时结束游戏强制结束
+}
+
+message PlayerRole {
+    // 角色 ID
+    int64 ID        = 1;
+    // 角色名称
+    string Name     = 2;
+    // 用户 id
+    int64  userId   = 3;
+    // 职业头像
+    string avatar   = 4;
+    // 职业的 flag, 是职业的唯一标志
+    string flag     = 5;
+}
+

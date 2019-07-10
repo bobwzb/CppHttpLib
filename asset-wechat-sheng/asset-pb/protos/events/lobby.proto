@@ -1,0 +1,59 @@
+// 玩家在大厅的进行的操作以及相关的事件
+syntax = "proto3";
+package pb.events;
+
+option go_package = "gitlab.com/vectorup/asset-pb/go/events";
+
+import "common/consts.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// 雇佣机器人进入匹配, 训练模式下机器人会直接进入房间, 训练模式每个房间都需要发送一条消息
+// 其他模式下机器人会自动创建对应模式和大小的房间然后开始开始匹配
+message HireBot {
+    // 发送消息的时间, 超过阈值的时间机器人服务不再处理, 阈值需要机器人服务根据匹配周期进行设定
+    google.protobuf.Timestamp timestamp = 1;
+    // 匹配类型
+    common.MatchType matchType = 2;
+    // 雇佣机器人的 matcher 的房间大小, 机器人会根据 matchType 和 roomSize 创建房间然后开始匹配
+    int32 roomSize = 3;
+    // 需要启动的机器人数量
+    int32 num = 4;
+    // 需要直接加入的房间号码, 训练模式雇佣机器人，机器人会直接进入房间
+    int32 roomNumber = 5;
+}
+
+// lobby 时间类型
+message LobbyEventType {
+    enum Enum {
+        // 无效
+        UNKNOWN = 0;
+        // 启动一局游戏, 匹配成功所有玩家都准备以后成功开始一局新游戏,
+        // 定义这个类型的初始目的是为了实现每日任务的与好友组队玩游戏
+        START_GAME = 1;
+    }
+}
+
+// 这个消息目前是用来实现组队游戏的每日任务.
+// cenarius 只要在 len(roommates) > 1 便会认为任务可推进
+message LobbyEventStartGame {
+    // 对应房间的 owner
+    int64 ownerID = 1;
+    // room.id xid
+    string roomID = 2;
+    // 房间号码
+    int32 roomNumber = 3;
+    // 房间内的玩家
+    repeated int64 roommates =4;
+    // 匹配类型
+    common.MatchType matchType = 5;
+}
+
+message LobbyEvent {
+    // 事件发生时间
+    google.protobuf.Timestamp timestamp = 1;
+    // 事件类型
+    LobbyEventType.Enum typ = 2;
+    // 事件内容
+    google.protobuf.Any detail = 3;
+}
