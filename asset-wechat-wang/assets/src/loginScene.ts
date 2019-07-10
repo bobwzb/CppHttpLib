@@ -22,11 +22,11 @@ import { RemoteAudio } from "./lib/component/remoteAudio";
 import ServerLoading from "./hall/ServerLoadingPopup";
 import { WX } from "./until/WX";
 let JSONbig = require("json-bigint");
-import * as Sentry from "@sentry/browser";
+/*import * as Sentry from "@sentry/browser";
 Sentry.init({
 	dsn:
 		"http://a616c340fe5b4478a08151f545c394a9:91278f8d39c64229811c1ecb0704f670@118.24.146.84:9000/5"
-});
+});*/
 
 const { ccclass, property } = cc._decorator;
 
@@ -51,8 +51,8 @@ export default class loginScene extends BasicScene {
 		RemoteAudio.preloadAllAudios().then(() => {
 			console.log("all audio loaded");
 		});
-		WX.initShareMenu();
-		WX.onShareMenu();
+		//WX.initShareMenu();
+		//WX.onShareMenu();
 	}
 
 	private loadSubPack() {
@@ -69,28 +69,28 @@ export default class loginScene extends BasicScene {
 		};
 		this.schedule(timeCallBack, 0.1);
 		cc.loader.downloader.loadSubpackage("asset_anime", function(err) {
-			if (err) {
+			/*if (err) {
 				self.loadSubPack();
-				Sentry.captureException(new Error("asset_anime分包加载失败"));
+				//Sentry.captureException(new Error("asset_anime分包加载失败"));
 				wx.showModal({
 					title: "友情提示",
 					content: "网络连接不稳定,请等候或重试",
 					showCancel: false,
 					confirmText: "知道了"
 				});
-				return console.error(err);
+				return console.error(err);*/
 			}
 			cc.loader.downloader.loadSubpackage("asset_resource", function(err) {
-				if (err) {
+				/*if (err) {
 					self.loadSubPack();
-					Sentry.captureException(new Error("asset_resource分包加载失败"));
+					//Sentry.captureException(new Error("asset_resource分包加载失败"));
 					wx.showModal({
 						title: "友情提示",
 						content: "网络连接不稳定,请等候或重试",
 						showCancel: false,
 						confirmText: "知道了"
 					});
-					return console.error(err);
+					return console.error(err);*/
 				}
 				console.log("load subpackage successfully.");
 				self.progress.progress = 1;
@@ -256,7 +256,7 @@ export default class loginScene extends BasicScene {
 				// session_key 未过期，并且在本生命周期一直有效
 				console.log("checkSessionsuccess");
 				if (self.encryptData && self.iv) {
-					Sentry.captureException(new Error("checkSessionsuccess"));
+					//Sentry.captureException(new Error("checkSessionsuccess"));
 				}
 			},
 			fail() {
@@ -286,7 +286,7 @@ export default class loginScene extends BasicScene {
 				}
 			},
 			fail(res) {
-				Sentry.captureException(new Error("wx.getSettingfail接口调用失败"));
+				//Sentry.captureException(new Error("wx.getSettingfail接口调用失败"));
 			}
 		});
 	}
