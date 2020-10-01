@@ -3,8 +3,27 @@
 #include <tchar.h>
 #include <stdio.h>
 #include <Windows.h>
+
 using std::string;
 using std::wstring;
+
+#define HEADER_USER_AGENT			"User-Agent"
+#define HEADER_CONNECTION			"Connection"
+#define HEADER_ACCEPT				"Accept"
+#define HEADER_ACCEPT_ENCODING		"Accept-Encoding"
+#define HEADER_ACCEPT_LANGUAGE		"Accept-Language"
+#define HEADER_CONTENT_TYPE			"Content-Type"
+#define HEADER_HOST					"Host"
+#define HEADER_RANGE				"Range"
+#define HEADER_LOCATION				"Location"
+#define HEADER_CONTENT_LENGTH		"Content-Length"
+
+static const char default_http_version[] = "HTTP/1.1";
+static const char default_user_agent[] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.4044.92 Safari/537.36";
+static const char default_accept[] = "*/*";
+static const char default_connection[] = "Keep-Alive";
+static const char default_language[] = "en;q=0.6";
+static const char http_newline[] = "\r\n";
 
 enum RequestType
 {
@@ -21,8 +40,8 @@ enum downloadState {
 enum ErrorType {
 	success,
 	init,
-	connect,
-	send,
+	errorConnect,
+	errorSend,
 	error404,
 	download,
 	userCancel,
@@ -32,7 +51,7 @@ enum ErrorType {
 };
 
 enum InterfaceType {
-	socket,
+	SocketType,
 	winNet,
 	winHttp,
 };
@@ -61,12 +80,12 @@ public:
 
 class WinNetHttp:public HttpBase {
 public:
-	virtual string Request(LPCSTR lpUrl, RequestType type, LPCSTR PostData = NULL, LPCSTR header = NULL);
-	virtual string Request(LPCWSTR lpUrl, RequestType type, LPCSTR PostData = NULL, LPCWSTR header = NULL);
+	virtual string Request(LPCSTR lpUrl, RequestType type, LPCSTR PostData = NULL, LPCSTR header = NULL)=0;
+	virtual string Request(LPCWSTR lpUrl, RequestType type, LPCSTR PostData = NULL, LPCWSTR header = NULL)=0;
 };
 
 class WinHttp : public WinNetHttp {
 public:
-	virtual void setTimeOut(int connectTime, int sendTime, int RecvTime);
+	virtual void setTimeOut(int connectTime, int sendTime, int RecvTime)=0;
 };
 
