@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.271
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HttpInterface", "HttpInterface\HttpInterface.vcxproj", "{B5386B93-0CA3-4EFF-8891-F1310EB319FE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B5386B93-0CA3-4EFF-8891-F1310EB319FE}.Debug|x64.ActiveCfg = Debug|x64
+		{B5386B93-0CA3-4EFF-8891-F1310EB319FE}.Debug|x64.Build.0 = Debug|x64
+		{B5386B93-0CA3-4EFF-8891-F1310EB319FE}.Debug|x86.ActiveCfg = Debug|Win32
+		{B5386B93-0CA3-4EFF-8891-F1310EB319FE}.Debug|x86.Build.0 = Debug|Win32
+		{B5386B93-0CA3-4EFF-8891-F1310EB319FE}.Release|x64.ActiveCfg = Release|x64
+		{B5386B93-0CA3-4EFF-8891-F1310EB319FE}.Release|x64.Build.0 = Release|x64
+		{B5386B93-0CA3-4EFF-8891-F1310EB319FE}.Release|x86.ActiveCfg = Release|Win32
+		{B5386B93-0CA3-4EFF-8891-F1310EB319FE}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A6CBF824-D33E-411C-A091-64F500EE499B}
+	EndGlobalSection
+EndGlobal
