@@ -154,6 +154,7 @@
     <ClInclude Include="httpHeader.h" />
     <ClInclude Include="HttpInterface.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="tool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="httpHeader.cpp" />
