@@ -13,7 +13,7 @@ class HttpHeader {
 	map<string, string> headers;
 protected:
 	bool Resolve(const string header);
-private:
+public:
 	HttpHeader();
 	HttpHeader(const char* pHeader);
 	HttpHeader(const std::string& strHeader);

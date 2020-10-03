@@ -18,12 +18,21 @@ using std::wstring;
 #define HEADER_LOCATION				"Location"
 #define HEADER_CONTENT_LENGTH		"Content-Length"
 
+#define HINTERNET PVOID
+
 static const char default_http_version[] = "HTTP/1.1";
 static const char default_user_agent[] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.4044.92 Safari/537.36";
 static const char default_accept[] = "*/*";
 static const char default_connection[] = "Keep-Alive";
 static const char default_language[] = "en;q=0.6";
 static const char http_newline[] = "\r\n";
+
+struct HttpParamsData
+{
+	void *lpparam;
+	HttpCallback *callback;
+	ErrorType errcode;
+};
 
 enum RequestType
 {

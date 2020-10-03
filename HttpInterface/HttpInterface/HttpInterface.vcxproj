@@ -154,7 +154,9 @@
     <ClInclude Include="httpHeader.h" />
     <ClInclude Include="HttpInterface.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="server.h" />
     <ClInclude Include="tool.h" />
+    <ClInclude Include="WinNetHttp.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="httpHeader.cpp" />
@@ -165,6 +167,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="WinNetHttp.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
