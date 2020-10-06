@@ -18,7 +18,6 @@ public:
 	virtual string	Request(LPCSTR pUrl, RequestType type, LPCSTR pPostData = NULL, LPCSTR pHeader = NULL);
 	virtual string	Request(LPCWSTR pUrl, RequestType type, LPCSTR pPostData = NULL, LPCWSTR pHeader = NULL);
 	virtual bool	DownloadFile(LPCWSTR lpUrl, LPCWSTR lpFilePath);
-	virtual bool	DownloadToMem(LPCWSTR lpUrl, OUT void** ppBuffer, OUT int* nSize);
 	virtual void	SetDownloadCallback(HttpCallback* pCallback, void* pParam);
 	virtual ErrorType GetErrorCode() { return data.errcode; }
 	virtual	void	FreeInstance() { delete this; }

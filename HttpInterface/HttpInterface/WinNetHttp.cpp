@@ -170,3 +170,33 @@ bool WinInetHttp::DownloadFile(LPCWSTR lpUrl, LPCWSTR lpFilePath) {
 	}
 	return res;
 }
+
+void WinInetHttp::AddHeader(LPCSTR key, LPCSTR value)
+{
+	if (isEmptyString(key) || isEmptyString(value)) {
+		return;
+	}
+	header.addHeader(string(key), string(value));
+}
+
+void WinInetHttp::releaseHandle(HINTERNET& hInternet)
+{
+	if (hInternet)
+	{
+		InternetCloseHandle(hInternet);
+		hInternet = NULL;
+	}
+}
+
+void WinInetHttp::release()
+{
+	releaseHandle(request);
+	releaseHandle(connect);
+	releaseHandle(session);
+}
+
+void WinInetHttp::SetDownloadCallback(HttpCallback* pCallback, void* pParam)
+{
+	data.callback = pCallback;
+	data.lpparam = pParam;
+}
