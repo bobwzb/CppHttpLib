@@ -11,7 +11,7 @@ class WinInetHttp : public WinNetHttp {
 	HttpParamsData data;
 protected:
 	void releaseHandle(HINTERNET& internet);
-	void realese();
+	void release();
 public:
 	WinInetHttp();
 	virtual ~WinInetHttp() {};

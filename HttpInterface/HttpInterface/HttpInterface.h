@@ -52,11 +52,16 @@ enum ErrorType {
 	errorConnect,
 	errorSend,
 	error404,
+	errorQuery,
 	download,
 	userCancel,
 	header,
 	overBuffer,
 	Unknowm,
+	noParam,
+	illegalUrl,
+	errorCreateFile,
+	errorWriteFile,
 };
 
 enum InterfaceType {
@@ -67,7 +72,7 @@ enum InterfaceType {
 
 class HttpCallback {
 public:
-	virtual void DownloadCallbeck(void* pParam, downloadState state, double totalSize, double loadSize) = 0;
+	virtual void DownloadCallback(void* pParam, downloadState state, double totalSize, double loadSize) = 0;
 	virtual bool NeedStop() = 0;
 };
 
