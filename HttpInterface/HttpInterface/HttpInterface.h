@@ -27,12 +27,6 @@ static const char default_connection[] = "Keep-Alive";
 static const char default_language[] = "en;q=0.6";
 static const char http_newline[] = "\r\n";
 
-struct HttpParamsData
-{
-	void *lpparam;
-	HttpCallback *callback;
-	ErrorType errcode;
-};
 
 enum RequestType
 {
@@ -62,6 +56,7 @@ enum ErrorType {
 	illegalUrl,
 	errorCreateFile,
 	errorWriteFile,
+	errorSocket,
 };
 
 enum InterfaceType {
@@ -87,7 +82,7 @@ public:
 	virtual void AddHeader(LPCSTR key, LPCSTR val) = 0;
 };
 
-class ScoketHttp:public HttpBase {
+class SocketHttp:public HttpBase {
 public:
 	virtual LPCWSTR getIpAddress() = 0;
 };
@@ -103,3 +98,9 @@ public:
 	virtual void setTimeOut(int connectTime, int sendTime, int RecvTime)=0;
 };
 
+struct HttpParamsData
+{
+	void *lpparam;
+	HttpCallback *callback;
+	ErrorType errorcode;
+};

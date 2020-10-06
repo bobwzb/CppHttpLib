@@ -1,6 +1,9 @@
+#include "pch.h"
 #include "WinNetHttp.h"
 #include <WinInet.h>
 #include "tool.h"
+#pragma comment(lib, "Wininet")
+
 WinInetHttp::WinInetHttp() {
 	https=false;
 	session=nullptr;
@@ -13,7 +16,7 @@ WinInetHttp::~WinInetHttp() {
 	release();
 }
 
-string WinInetHttp::Request(LPCSTR pUrl, RequestType type, LPCSTR pPostData = NULL, LPCSTR pHeader = NULL) {
+string WinInetHttp::Request(LPCSTR pUrl, RequestType type, LPCSTR pPostData , LPCSTR pHeader ) {
 	string res;
 	try {
 		if (pUrl == nullptr) throw noParam;
@@ -52,12 +55,12 @@ string WinInetHttp::Request(LPCSTR pUrl, RequestType type, LPCSTR pPostData = NU
 		}
 	}
 	catch(ErrorType error){
-		data.errcode = error;
+		data.errorcode = error;
 	}
 	return res;
 }
 
-string WinInetHttp::Request(LPCWSTR lpUrl, RequestType type, LPCSTR lpPostData/* = NULL*/, LPCWSTR lpHeader/*=NULL*/) {
+string WinInetHttp::Request(LPCWSTR lpUrl, RequestType type, LPCSTR lpPostData, LPCWSTR lpHeader) {
 	string res;
 	try {
 		if (lpUrl == nullptr) throw noParam;
@@ -96,7 +99,7 @@ string WinInetHttp::Request(LPCWSTR lpUrl, RequestType type, LPCSTR lpPostData/*
 		}
 	}
 	catch (ErrorType error) {
-		data.errcode = error;
+		data.errorcode = error;
 	}
 	return res;
 }
@@ -164,7 +167,7 @@ bool WinInetHttp::DownloadFile(LPCWSTR lpUrl, LPCWSTR lpFilePath) {
 		res = true;
 	}
 	catch(ErrorType type){
-		data.errcode = type;
+		data.errorcode = type;
 		if (data.callback)
 			data.callback->DownloadCallback(data.lpparam, failed, 0, 0);
 	}

@@ -18,7 +18,7 @@ HttpHeader::HttpHeader(const string& strHeader) {
 
 HttpHeader::~HttpHeader() {}
 
-string HttpHeader::getVal(string& key) {
+string HttpHeader::getVal(const string& key) {
 	string res="";
 	auto it = headers.find(key);
 	if (it != headers.end())

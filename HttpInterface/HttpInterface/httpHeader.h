@@ -29,7 +29,7 @@ public:
 
 	const char* getContent() const { return strContent.c_str(); }
 
-	string getVal(string& key);
+	string getVal(const string& key);
 
 	void addHeader(const string& key, const string& val);
 
