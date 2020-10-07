@@ -180,3 +180,17 @@ bool httpSocket::downloadFile(LPCWSTR lpUrl, LPCWSTR lpFilePath)
 		DeleteFile(lpFilePath);
 	return res;
 }
+
+void httpSocket::setDownloadCallback(HttpCallback* pCallback, void* pParam)
+{
+	m_paramsData.callback = pCallback;
+	m_paramsData.lpparam = pParam;
+}
+
+void httpSocket::addHeader(LPCSTR key, LPCSTR value)
+{
+	if (isEmptyString(key) || isEmptyString(value)) {
+		return;
+	}
+	m_header.addHeader(std::string(key), std::string(value));
+}
