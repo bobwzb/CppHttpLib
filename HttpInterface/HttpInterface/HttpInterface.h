@@ -62,7 +62,6 @@ enum ErrorType {
 enum InterfaceType {
 	SocketType,
 	winNet,
-	winHttp,
 };
 
 class HttpCallback {
@@ -74,11 +73,10 @@ public:
 class HttpBase
 {
 public:
-	virtual void setDownloadCallback(HttpCallback* pCallback, void* pParam) = 0;
-	virtual bool downloadFile(LPCWSTR lpUrl, LPCWSTR lpFilePath) = 0;
-	virtual bool downloadToMem(LPCWSTR lpUrl, OUT void** Buffer, OUT int* size) = 0;
-	virtual void freeInstance() = 0;
-	virtual ErrorType getErrorType() = 0;
+	virtual void SetDownloadCallback(HttpCallback* pCallback, void* pParam) = 0;
+	virtual bool DownloadFile(LPCWSTR lpUrl, LPCWSTR lpFilePath) = 0;
+	virtual void FreeInstance() = 0;
+	virtual ErrorType GetErrorCode() = 0;
 	virtual void AddHeader(LPCSTR key, LPCSTR val) = 0;
 };
 

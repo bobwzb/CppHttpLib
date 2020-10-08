@@ -68,14 +68,14 @@ bool httpSocket::downloadFile(LPCWSTR lpUrl, LPCWSTR lpFilePath)
 		}
 		string host = U2A(strHostName);
 		if (!InitSocket(host, uPort))
-			throw L"";
+			throw init;
 		m_header.setHost(host);
 		//might re-direction back
 	__request:
 		m_header.setRequestPath(U2A(strPage));
 		std::string strSend = m_header.toString(httpGet);
 		int nRet = send(m_socket, strSend.c_str(), strSend.size(), 0);
-		if (SOCKET_ERROR == nRet)
+		if (nRet == SOCKET_ERROR)
 			throw errorSend;
 		int		nRecvSize = 0, nWriteSize = 0;
 		double	nFileSize = 0, nLoadSize = 0;
@@ -104,7 +104,7 @@ bool httpSocket::downloadFile(LPCWSTR lpUrl, LPCWSTR lpFilePath)
 					strHeader.append((char*)pBuffer, nPos);
 					HttpHeader header(strHeader);
 					int nHttpValue = header.getReturnVal();
-					if (404 == nHttpValue)
+					if (nHttpValue == 404)
 					{
 						throw error404;
 					}
@@ -192,5 +192,5 @@ void httpSocket::addHeader(LPCSTR key, LPCSTR value)
 	if (isEmptyString(key) || isEmptyString(value)) {
 		return;
 	}
-	m_header.addHeader(std::string(key), std::string(value));
+	m_header.addHeader(string(key), string(value));
 }
